@@ -11,12 +11,42 @@ import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import MenuItem from "@mui/material/MenuItem";
 import {
   updatePerson,
   fetchPeople,
   createPerson,
   deletePerson,
 } from "services/convo-broker.js";
+
+const SG_DISTRICTS = [
+  "Ang Mo Kio",
+  "Bedok",
+  "Bishan",
+  "Bukit Batok",
+  "Bukit Merah",
+  "Bukit Panjang",
+  "Bukit Timah",
+  "Central Area",
+  "Choa Chu Kang",
+  "Clementi",
+  "Geylang",
+  "Hougang",
+  "Jurong East",
+  "Jurong West",
+  "Kallang",
+  "Marine Parade",
+  "Pasir Ris",
+  "Punggol",
+  "Queenstown",
+  "Sembawang",
+  "Sengkang",
+  "Serangoon",
+  "Tampines",
+  "Toa Payoh",
+  "Woodlands",
+  "Yishun",
+];
 
 function PersonDetail() {
   const { id } = useParams();
@@ -220,11 +250,41 @@ function PersonDetail() {
                   fullWidth
                 />
                 <TextField
+                  variant="outlined"
+                  select
                   label="District"
                   value={editedPerson?.District || ""}
                   onChange={(e) => handleChange("District", e.target.value)}
                   fullWidth
-                />
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        style: {
+                          maxHeight: 300,
+                        },
+                      },
+                    },
+                  }}
+                  sx={{
+                    // make the outer input match your other fields
+                    "& .MuiOutlinedInput-root": {
+                      height: 44.13,
+                    },
+                    // align the select text vertically like the others
+                    "& .MuiSelect-select": {
+                      display: "flex",
+                      alignItems: "center",
+                      paddingTop: "16.5px",
+                      paddingBottom: "16.5px",
+                    },
+                  }}
+                >
+                  {SG_DISTRICTS.map((district) => (
+                    <MenuItem key={district} value={district}>
+                      {district}
+                    </MenuItem>
+                  ))}
+                </TextField>
                 <TextField
                   label="Address"
                   value={editedPerson?.Address || ""}
