@@ -25,7 +25,8 @@ const corsOptions = {
 dbConnect();
 
 app.use(cors(corsOptions));
-app.use(bodyParser.json({ type: "application/vnd.api+json", strict: false }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/people", peopleRoutes);
 app.get("/", function (req, res) {
   const __dirname = fs.realpathSync(".");

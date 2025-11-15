@@ -98,10 +98,13 @@ export default function data() {
       action: (
         <MDTypography
           component="a"
-          href="#"
+          onClick={() =>
+            navigate(`/person/${person._id}`, { state: { edit: true } })
+          }
           variant="caption"
           color="text"
           fontWeight="medium"
+          sx={{ cursor: "pointer" }}
         >
           Edit
         </MDTypography>
