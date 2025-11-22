@@ -13,6 +13,7 @@ const peopleSchema = new mongoose.Schema(
     Contact: { type: Number },
     District: { type: String },
     Address: { type: String },
+    ProfilePic: { type: String, default: "" },
 
     // email_verified_at: { type: Date },
     // password: { required: true, type: String },

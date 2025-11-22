@@ -4,7 +4,7 @@ import MDAvatar from "components/MDAvatar";
 import MDBadge from "components/MDBadge";
 import Checkbox from "@mui/material/Checkbox";
 import { useState, useEffect } from "react";
-import team2 from "assets/images/team-2.jpg";
+import defaultProfilePic from "assets/images/default-profile-picture.png";
 import { fetchPeople } from "services/convo-broker.js";
 import { useNavigate } from "react-router-dom";
 
@@ -67,7 +67,7 @@ export default function data() {
     rows: people.map((person) => ({
       people: (
         <People
-          image={team2}
+          image={person.ProfilePic || defaultProfilePic}
           name={person.Name || "N/A"}
           district={person.District || ""}
           id={person._id}

@@ -11,6 +11,9 @@ import Autocomplete from "@mui/material/Autocomplete";
 import { styled } from "@mui/material/styles";
 import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import CircularProgress from "@mui/material/CircularProgress";
+import defaultProfilePic from "assets/images/default-profile-picture.png"; // Make sure this path is correct
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
@@ -21,17 +24,8 @@ import {
   fetchPeople,
   createPerson,
   deletePerson,
+  uploadProfilePicture,
 } from "services/convo-broker.js";
-
-// Cloudinary
-import cld from "services/cloudinary/cloudinary";
-import { AdvancedImage } from "@cloudinary/react";
-import { fill } from "@cloudinary/url-gen/actions/resize";
-// Instantiate a CloudinaryImage object for the image with the public ID, 'docs/models'.
-const myImage = cld.image("images_mbi0cg");
-{
-  /* <AdvancedImage cldImg={myImage} />; */
-}
 
 const SG_DISTRICTS = [
   "Ang Mo Kio",
@@ -104,8 +98,6 @@ function splitMatch(label, query) {
   ];
 }
 
-const DEFAULT_PROFILE_PIC_URL = "/team-2.jpg";
-
 function PersonDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -115,14 +107,20 @@ function PersonDetail() {
   const [person, setPerson] = useState(null);
   const [isEditing, setIsEditing] = useState(location.state?.edit || isAddMode);
   const [editedPerson, setEditedPerson] = useState(
-    isAddMode ? { profilePic: "" } : null
+    isAddMode ? { ProfilePic: "" } : null
   );
-  // `customFields` will now contain objects either with or without a `value2` property
   const [customFields, setCustomFields] = useState([]);
   const [showNotFoundModal, setShowNotFoundModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [peopleList, setPeopleList] = useState([]);
 
+  // Profile Picture Upload States
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  // Define known fields that should NOT be treated as generic custom fields
+  // ProfilePic is explicitly handled by the image upload/display logic
   const knownFields = [
     "_id",
     "id",
@@ -131,10 +129,9 @@ function PersonDetail() {
     "District",
     "Address",
     "Contact",
-    "profilePic",
+    "ProfilePic", // This ensures ProfilePic is skipped by custom field logic
   ];
 
-  // Helper to check if a field's value represents a relationship object
   const isRelationshipFieldData = (fieldData) => {
     return (
       fieldData &&
@@ -144,22 +141,21 @@ function PersonDetail() {
     );
   };
 
-  // Helper function to initialize custom fields from person data
   const initializeCustomFields = (personData) => {
     const initialCustomFields = [];
     Object.keys(personData || {}).forEach((key) => {
+      // Only add to customFields if it's NOT a known field AND not the ProfilePic field
       if (!knownFields.includes(key)) {
         if (isRelationshipFieldData(personData[key])) {
           initialCustomFields.push({
             key: key,
             value: personData[key].person || "",
-            value2: personData[key].relation || "", // Relationship fields have value2
+            value2: personData[key].relation || "",
           });
         } else {
           initialCustomFields.push({
             key: key,
             value: personData[key] || "",
-            // Non-relationship fields do NOT have value2
           });
         }
       }
@@ -176,21 +172,21 @@ function PersonDetail() {
         if (found) {
           setPerson(found);
           setEditedPerson(found);
-          setCustomFields(initializeCustomFields(found)); // Use helper
+          setCustomFields(initializeCustomFields(found));
         } else {
           setShowNotFoundModal(true);
         }
       }
     } else {
       setEditedPerson({
-        profilePic: "",
+        ProfilePic: "",
         Name: "",
         NameChi: "",
         District: "",
         Address: "",
         Contact: "",
       });
-      setCustomFields([]); // Ensure custom fields are empty for new person
+      setCustomFields([]);
     }
   }, [id, isAddMode]);
 
@@ -213,17 +209,26 @@ function PersonDetail() {
   const handleSave = async () => {
     try {
       const dataToSave = { ...editedPerson };
+
+      // Clear existing dynamic fields from dataToSave before re-applying
       const existingDynamicKeys = Object.keys(person || {}).filter(
         (key) => !knownFields.includes(key)
       );
       existingDynamicKeys.forEach((key) => delete dataToSave[key]);
 
+      // Apply custom fields from the current state
       customFields.forEach((field, index) => {
         let actualKey = field.key;
+        // IMPORTANT: Prevent custom field from being named ProfilePic
+        if (actualKey === "ProfilePic") {
+          console.warn(
+            "Attempted to save a custom field named 'ProfilePic'. Ignoring as this is a reserved field."
+          );
+          return; // Skip this custom field
+        }
         if (!actualKey) {
           actualKey = `CustomField_${index}`;
         }
-        // Check for the PRESENCE of 'value2' to determine if it's a relationship
         if ("value2" in field) {
           dataToSave[actualKey] = {
             person: field.value || "",
@@ -249,7 +254,7 @@ function PersonDetail() {
           const found = people.find((p) => p._id === id);
           setPerson(found);
           setEditedPerson(found);
-          setCustomFields(initializeCustomFields(found)); // Use helper
+          setCustomFields(initializeCustomFields(found));
         }
         setIsEditing(false);
       }
@@ -263,8 +268,10 @@ function PersonDetail() {
       navigate("/tables");
     } else {
       setEditedPerson(person);
-      setCustomFields(initializeCustomFields(person)); // Use helper
+      setCustomFields(initializeCustomFields(person));
       setIsEditing(false);
+      setSelectedFile(null);
+      setUploadError(null);
     }
   };
 
@@ -273,7 +280,6 @@ function PersonDetail() {
   };
 
   const addCustomField = () => {
-    // Add a generic custom field WITHOUT a value2 property
     setCustomFields([...customFields, { key: "", value: "" }]);
   };
 
@@ -281,7 +287,6 @@ function PersonDetail() {
     const newRelationshipKey = `Relationship_${Date.now()}_${
       customFields.length
     }`;
-    // Add a relationship field WITH a value2 property (even if empty initially)
     setCustomFields([
       ...customFields,
       { key: newRelationshipKey, value: "", value2: "" },
@@ -315,14 +320,56 @@ function PersonDetail() {
     setShowDeleteModal(false);
   };
 
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setUploadError(null);
+    }
+  };
+
+  const handleProfilePicUpload = async () => {
+    if (!selectedFile) {
+      setUploadError("Please select an image file first.");
+      return;
+    }
+    if (isAddMode) {
+      setUploadError(
+        "Please create the person first before uploading an image."
+      );
+      return;
+    }
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const response = await uploadProfilePicture(id, selectedFile);
+      setEditedPerson((prev) => ({
+        ...prev,
+        ProfilePic: response.profilePicUrl,
+      }));
+      setSelectedFile(null);
+      localStorage.removeItem("people");
+      await fetchPeople();
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      setUploadError(
+        error.response?.data?.message ||
+          "Failed to upload image. Please try again."
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (!isAddMode && !person && !showNotFoundModal) return <div>Loading...</div>;
 
   // Filter customFields based on the PRESENCE of the 'value2' property
+  // AND ensure 'ProfilePic' is not rendered as a custom field value
   const personalInfoCustomFieldsForRender = customFields.filter(
-    (field) => !("value2" in field) // Field does NOT have 'value2'
+    (field) => !("value2" in field) && field.key !== "ProfilePic"
   );
   const relationshipCustomFieldsForRender = customFields.filter(
-    (field) => "value2" in field // Field HAS 'value2'
+    (field) => "value2" in field
   );
 
   return (
@@ -402,12 +449,13 @@ function PersonDetail() {
                   border: isAddMode || isEditing ? "1px dashed #ccc" : "none",
                 }}
               >
+                {/* Profile Picture Display */}
                 <MDBox
                   component="img"
                   src={
                     isAddMode || isEditing
-                      ? editedPerson?.profilePic || DEFAULT_PROFILE_PIC_URL
-                      : person?.profilePic || DEFAULT_PROFILE_PIC_URL
+                      ? editedPerson?.ProfilePic || defaultProfilePic
+                      : person?.ProfilePic || defaultProfilePic
                   }
                   alt={`${person?.Name || "User"}'s profile`}
                   width="150px"
@@ -415,6 +463,62 @@ function PersonDetail() {
                   borderRadius="50%"
                   sx={{ objectFit: "cover", border: "2px solid #ddd" }}
                 />
+                {/* Profile Picture Upload Controls (visible in edit/add mode) */}
+                {(isEditing || isAddMode) && (
+                  <MDBox
+                    mt={2}
+                    display="flex"
+                    flexDirection="column"
+                    alignItems="center"
+                    gap={1}
+                    width="100%"
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      style={{ display: "none" }}
+                      id="profile-pic-upload-input"
+                    />
+                    <label
+                      htmlFor="profile-pic-upload-input"
+                      style={{ width: "100%" }}
+                    >
+                      <MDButton
+                        variant="outlined"
+                        color="info"
+                        component="span"
+                        fullWidth
+                        startIcon={<UploadFileIcon />}
+                      >
+                        {selectedFile
+                          ? selectedFile.name
+                          : "Choose Profile Picture"}
+                      </MDButton>
+                    </label>
+                    {selectedFile && (
+                      <MDButton
+                        variant="gradient"
+                        color="success"
+                        onClick={handleProfilePicUpload}
+                        disabled={isUploading || isAddMode}
+                        fullWidth
+                        sx={{ mt: 1 }}
+                      >
+                        {isUploading ? (
+                          <CircularProgress size={24} color="inherit" />
+                        ) : (
+                          "Upload Image"
+                        )}
+                      </MDButton>
+                    )}
+                    {uploadError && (
+                      <MDTypography variant="caption" color="error" mt={1}>
+                        {uploadError}
+                      </MDTypography>
+                    )}
+                  </MDBox>
+                )}
                 {/* Display Name and Chinese Name ONLY in view mode */}
                 {!isEditing && !isAddMode && (
                   <>
@@ -425,11 +529,13 @@ function PersonDetail() {
                 )}
               </MDBox>
             </Grid>
-
             {/* Right Column: Personal Info & Related Persons Panels */}
             <Grid item xs={12} md={8} lg={9}>
               {/* Panel 1: Personal Information */}
               <Card sx={{ mb: 3, p: 2 }}>
+                <MDTypography variant="h6" mb={2}>
+                  Personal Information
+                </MDTypography>
                 {isEditing || isAddMode ? (
                   <MDBox display="flex" flexDirection="column" gap={2}>
                     {/* Core personal info fields */}
@@ -449,7 +555,6 @@ function PersonDetail() {
                       fullWidth
                       sx={{ "& .MuiOutlinedInput-root": { height: "56px" } }}
                     />
-                    {/* District TextField - Adjusted height */}
                     <TextField
                       variant="outlined"
                       select
@@ -581,6 +686,7 @@ function PersonDetail() {
                 ) : (
                   <MDBox display="flex" flexDirection="column" gap={1}>
                     {/* View mode for Personal Info */}
+                    {/* Explicitly render core fields */}
                     {person?.Name && (
                       <MDTypography variant="body2">
                         <MDTypography component="span" fontWeight="bold">
@@ -621,6 +727,7 @@ function PersonDetail() {
                         {person.Contact}
                       </MDTypography>
                     )}
+                    {/* Render generic custom fields, filtered to exclude ProfilePic */}
                     {personalInfoCustomFieldsForRender.map((field, index) => (
                       <MDTypography key={`pcf-view-${index}`} variant="body2">
                         <MDTypography component="span" fontWeight="bold">
@@ -631,7 +738,9 @@ function PersonDetail() {
                           : field.value}
                       </MDTypography>
                     ))}
+                    {/* Only show "No additional info" if NO standard fields AND NO custom fields are present */}
                     {!person?.Name &&
+                      !person?.NameChi &&
                       !person?.District &&
                       !person?.Address &&
                       !person?.Contact &&
@@ -731,7 +840,7 @@ function PersonDetail() {
                         (p) => p.Name === relatedPersonName
                       );
                       const relatedPersonProfilePic =
-                        relatedPerson?.profilePic || DEFAULT_PROFILE_PIC_URL;
+                        relatedPerson?.ProfilePic || defaultProfilePic;
                       return (
                         <MDBox
                           key={`rcf-view-${index}`}
@@ -810,5 +919,4 @@ function PersonDetail() {
     </DashboardLayout>
   );
 }
-
 export default PersonDetail;

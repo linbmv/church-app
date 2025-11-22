@@ -39,3 +39,24 @@ export const deletePerson = async (id) => {
   });
   return response.json();
 };
+
+export const uploadProfilePicture = async (personId, file) => {
+  const formData = new FormData();
+  formData.append("ProfilePic", file);
+
+  try {
+    const response = await axios.post(
+      `${baseURL}/people/${personId}/upload-profile-pic`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data", // axios handles this correctly for FormData
+        },
+      }
+    );
+    return response.data; // This should contain profilePicUrl
+  } catch (error) {
+    console.error("Failed to upload profile picture:", error);
+    throw error;
+  }
+};
