@@ -57,7 +57,7 @@ import {
 import MDButton from "components/MDButton";
 import { AuthContext } from "context";
 
-function DashboardNavbar({ absolute, light, isMini }) {
+function DashboardNavbar({ absolute, light, isMini, customRoute }) {
   const authContext = useContext(AuthContext);
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
@@ -69,7 +69,10 @@ function DashboardNavbar({ absolute, light, isMini }) {
     darkMode,
   } = controller;
   const [openMenu, setOpenMenu] = useState(false);
-  const route = useLocation().pathname.split("/").slice(1);
+  const location = useLocation();
+  const locationRoute = location.pathname.split("/").slice(1);
+  const route =
+    customRoute && customRoute.length ? customRoute : locationRoute;
   let navigate = useNavigate();
 
   useEffect(() => {
@@ -246,6 +249,7 @@ DashboardNavbar.defaultProps = {
   absolute: false,
   light: false,
   isMini: false,
+  customRoute: null,
 };
 
 // Typechecking props for the DashboardNavbar
@@ -253,6 +257,7 @@ DashboardNavbar.propTypes = {
   absolute: PropTypes.bool,
   light: PropTypes.bool,
   isMini: PropTypes.bool,
+  customRoute: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default DashboardNavbar;

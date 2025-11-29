@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect, useCallback, useRef } from "react"; // Added useCallback
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"; // Added useCallback
 import Card from "@mui/material/Card";
 // REMOVED: TextField, MenuItem, Autocomplete, Grid, AddIcon, UploadFileIcon, CircularProgress
 import Dialog from "@mui/material/Dialog";
@@ -405,6 +405,19 @@ function PersonDetail() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadError, setUploadError] = useState(null);
   const profilePicProcessorRef = useRef(null);
+
+  const breadcrumbRoute = useMemo(() => {
+    const baseRoute = ["person-detail"];
+    const trimmedEditedName = editedPerson?.Name?.trim() || "";
+    const trimmedPersonName = person?.Name?.trim() || "";
+    const displayName = trimmedEditedName || trimmedPersonName || "";
+    if (displayName) {
+      baseRoute.push(displayName);
+    } else if (id) {
+      baseRoute.push(id);
+    }
+    return baseRoute;
+  }, [editedPerson?.Name, person?.Name, id]);
 
   // Utility function for determining relationship field data structure
   const isRelationshipFieldData = useCallback((fieldData) => {
@@ -1038,7 +1051,7 @@ function PersonDetail() {
 
   return (
     <DashboardLayout>
-      <DashboardNavbar />
+      <DashboardNavbar customRoute={breadcrumbRoute} />
       <MDBox pt={6} pb={3}>
         <Card>
           {/* Header and Action Buttons (remain in parent as they control edit state) */}
