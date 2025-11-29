@@ -20,7 +20,7 @@ import projectsTableData from "layouts/tables/data/projectsTableData";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function Tables() {
+function People() {
   const { people, rows: initialRows } = peopleTableData(); // now also returns people
   const { columns: pColumns, rows: pRows } = projectsTableData();
   const navigate = useNavigate();
@@ -226,4 +226,4 @@ function Tables() {
   );
 }
 
-export default Tables;
+export default People;

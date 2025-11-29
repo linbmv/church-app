@@ -293,15 +293,11 @@ const propagateImmediateFamilyRelationships = async ({
         const firstFields = getFieldsForPerson(firstChild.person);
         const secondFields = getFieldsForPerson(secondChild.person);
         if (!firstFields || !secondFields) continue;
-        const labelFirstToSecond = getSiblingLabelForGender(
-          secondChild.gender
-        );
+        const labelFirstToSecond = getSiblingLabelForGender(secondChild.gender);
         const reciprocalFirstToSecond = getSiblingLabelForGender(
           firstChild.gender
         );
-        const labelSecondToFirst = getSiblingLabelForGender(
-          firstChild.gender
-        );
+        const labelSecondToFirst = getSiblingLabelForGender(firstChild.gender);
         const reciprocalSecondToFirst = getSiblingLabelForGender(
           secondChild.gender
         );
@@ -407,7 +403,7 @@ function PersonDetail() {
   const profilePicProcessorRef = useRef(null);
 
   const breadcrumbRoute = useMemo(() => {
-    const baseRoute = ["person-detail"];
+    const baseRoute = ["person"];
     const trimmedEditedName = editedPerson?.Name?.trim() || "";
     const trimmedPersonName = person?.Name?.trim() || "";
     const displayName = trimmedEditedName || trimmedPersonName || "";
@@ -446,9 +442,7 @@ function PersonDetail() {
                 getAutoReciprocalForRelation(relationValue) ||
                 "",
               personId:
-                personData[key].personId ||
-                personData[key].personID ||
-                "",
+                personData[key].personId || personData[key].personID || "",
             });
           } else {
             initialCustomFields.push({
@@ -512,9 +506,7 @@ function PersonDetail() {
     }
     const name = (field.value || "").trim();
     if (!name) return null;
-    return (
-      people.find((p) => (p.Name || "").trim() === name) || null
-    );
+    return people.find((p) => (p.Name || "").trim() === name) || null;
   }, []);
 
   const syncReciprocalRelationships = useCallback(
@@ -623,9 +615,7 @@ function PersonDetail() {
           const existing = fields[matchIndex];
           if (
             existing.value2 === relationLabel &&
-            (reciprocalLabel
-              ? existing.value3 === reciprocalLabel
-              : true) &&
+            (reciprocalLabel ? existing.value3 === reciprocalLabel : true) &&
             (targetId ? existing.personId === targetId : true)
           ) {
             return false;
@@ -823,7 +813,10 @@ function PersonDetail() {
       }
       setUploadError(null);
       try {
-        const response = await uploadProfilePicture(targetPersonId, fileToUpload);
+        const response = await uploadProfilePicture(
+          targetPersonId,
+          fileToUpload
+        );
         setEditedPerson((prev) => ({
           ...prev,
           ProfilePic: response.profilePicUrl,
@@ -902,10 +895,7 @@ function PersonDetail() {
           previousRelationships: [],
         });
         if (pendingProfilePicFile && createdPersonId) {
-          await handleProfilePicUpload(
-            pendingProfilePicFile,
-            createdPersonId
-          );
+          await handleProfilePicUpload(pendingProfilePicFile, createdPersonId);
         }
         localStorage.removeItem("people");
         await fetchPeople();
@@ -913,7 +903,7 @@ function PersonDetail() {
         if (storedPeople) {
           setPeopleList(JSON.parse(storedPeople));
         }
-        navigate("/tables");
+        navigate("/people");
       } else {
         await updatePerson(id, dataToSave);
         if (pendingProfilePicFile) {
@@ -957,7 +947,7 @@ function PersonDetail() {
 
   const handleDiscard = useCallback(() => {
     if (isAddMode) {
-      navigate("/tables");
+      navigate("/people");
     } else {
       setEditedPerson(person); // Revert to original person data
       setCustomFields(initializeCustomFields(person)); // Revert custom fields
@@ -973,7 +963,7 @@ function PersonDetail() {
       await deletePerson(id);
       localStorage.removeItem("people");
       await fetchPeople();
-      navigate("/tables");
+      navigate("/people");
     } catch (error) {
       console.error("Failed to delete:", error);
     }
@@ -1030,7 +1020,7 @@ function PersonDetail() {
   // Modal Handlers
   const handleCloseModal = useCallback(() => {
     setShowNotFoundModal(false);
-    navigate("/tables");
+    navigate("/people");
   }, [navigate]);
 
   if (!isAddMode && !person && !showNotFoundModal) return <div>Loading...</div>;
