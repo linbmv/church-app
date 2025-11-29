@@ -55,3 +55,52 @@ export const RELATION_SUGGESTIONS = [
   "Colleague",
   "Spouse",
 ];
+
+export const RELATION_INVERSE_MAP = {
+  father: "Child",
+  mother: "Child",
+  son: "Parent",
+  daughter: "Parent",
+  brother: "Sibling",
+  sister: "Sibling",
+  husband: "Wife",
+  wife: "Husband",
+  grandfather: "Grandchild",
+  grandmother: "Grandchild",
+  grandson: "Grandparent",
+  granddaughter: "Grandparent",
+  uncle: "Niece/Nephew",
+  aunt: "Niece/Nephew",
+  cousin: "Cousin",
+  friend: "Friend",
+  colleague: "Colleague",
+  spouse: "Spouse",
+};
+
+export const RELATION_AUTO_RECIPROCALS = {
+  husband: "Wife",
+  wife: "Husband",
+  friend: "Friend",
+  colleague: "Colleague",
+  spouse: "Spouse",
+};
+
+export const RELATION_RECIPROCAL_SUGGESTIONS = {
+  father: ["Son", "Daughter"],
+  mother: ["Son", "Daughter"],
+  son: ["Father", "Mother"],
+  daughter: ["Father", "Mother"],
+  grandfather: ["Grandchild"],
+  grandmother: ["Grandchild"],
+  grandson: ["Grandparent"],
+  granddaughter: ["Grandparent"],
+  uncle: ["Niece", "Nephew"],
+  aunt: ["Niece", "Nephew"],
+  husband: ["Wife"],
+  wife: ["Husband"],
+  spouse: ["Spouse"],
+  brother: ["Brother", "Sister"],
+  sister: ["Brother", "Sister"],
+  friend: ["Friend"],
+  colleague: ["Colleague"],
+};

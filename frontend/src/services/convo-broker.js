@@ -4,11 +4,14 @@ const baseURL = "http://localhost:8080";
 
 export const fetchPeople = async () => {
   try {
-    const response = await axios.get(`${baseURL}/people`);
+    const response = await axios.get(`${baseURL}/people`, {
+      params: { _ts: Date.now() },
+      headers: {
+        "Cache-Control": "no-cache",
+      },
+    });
     const people = response.data;
-    if (!localStorage.getItem("people")) {
-      localStorage.setItem("people", JSON.stringify(people));
-    }
+    localStorage.setItem("people", JSON.stringify(people));
   } catch (error) {
     console.error("Failed to fetch users:", error);
   }

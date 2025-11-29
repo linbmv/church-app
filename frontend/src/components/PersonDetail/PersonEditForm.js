@@ -15,6 +15,8 @@ import {
   SG_DISTRICTS,
   FIELD_NAME_SUGGESTIONS,
   RELATION_SUGGESTIONS,
+  RELATION_AUTO_RECIPROCALS,
+  RELATION_RECIPROCAL_SUGGESTIONS,
 } from "../../constants";
 import { Highlight, splitMatch } from "../../utils/stringUtils";
 
@@ -22,6 +24,7 @@ function PersonEditForm({
   editedPerson,
   personalInfoCustomFieldsForRender,
   relationshipCustomFieldsForRender,
+  relationshipFieldErrors = {},
   peopleList, // Used for personNameOptions
   defaultProfilePic,
   isAddMode,
@@ -38,9 +41,21 @@ function PersonEditForm({
   isUploading,
   uploadError,
 }) {
-  const personNameOptions = peopleList
-    .map((p) => p.Name)
-    .filter((name) => !!name);
+  const findPersonById = (id) =>
+    peopleList.find((person) => person._id === id) || null;
+  const normalizeRelation = (relation = "") => relation.trim().toLowerCase();
+  const getAutoReciprocalValue = (relation = "") =>
+    RELATION_AUTO_RECIPROCALS[normalizeRelation(relation)] || "";
+  const getReciprocalOptions = (relation = "") =>
+    RELATION_RECIPROCAL_SUGGESTIONS[normalizeRelation(relation)] ||
+    RELATION_SUGGESTIONS;
+  const isValidRelationSuggestion = (relation = "") => {
+    const trimmed = relation.trim();
+    if (!trimmed) return false;
+    return RELATION_SUGGESTIONS.some(
+      (suggestion) => suggestion.toLowerCase() === trimmed.toLowerCase()
+    );
+  };
 
   return (
     <Grid container spacing={3}>
@@ -193,76 +208,82 @@ function PersonEditForm({
               sx={{ "& .MuiOutlinedInput-root": { height: "56px" } }}
             />
             {/* Generic custom fields */}
-            {personalInfoCustomFieldsForRender.map((field, index) => (
-              <MDBox
-                key={`pcf-${index}`}
-                display="flex"
-                gap={2}
-                alignItems="center"
-              >
-                <Autocomplete
-                  freeSolo
-                  options={FIELD_NAME_SUGGESTIONS}
-                  value={field.key || ""}
-                  onChange={(event, newValue) =>
-                    updateCustomField(index, "key", newValue || "")
-                  }
-                  onInputChange={(event, newInputValue) =>
-                    updateCustomField(index, "key", newInputValue)
-                  }
-                  sx={{ flex: 1 }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      variant="outlined"
-                      label="Field Name"
-                      sx={{
-                        "& .MuiOutlinedInput-root": { height: "56px" },
-                      }}
-                    />
-                  )}
-                  renderOption={(props, option) => {
-                    const [start, match, end] = splitMatch(
-                      option,
-                      field.key || ""
-                    );
-                    return (
-                      <li {...props}>
-                        {match ? (
-                          <>
-                            {start}
-                            <Highlight>{match}</Highlight>
-                            {end}
-                          </>
-                        ) : (
-                          option
-                        )}
-                      </li>
-                    );
-                  }}
-                />
-                <TextField
-                  variant="outlined"
-                  label="Value"
-                  value={field.value}
-                  onChange={(e) =>
-                    updateCustomField(index, "value", e.target.value)
-                  }
-                  sx={{
-                    flex: 1,
-                    "& .MuiOutlinedInput-root": { height: "56px" },
-                  }}
-                />
-                <MDButton
-                  variant="outlined"
-                  color="error"
-                  onClick={() => removeCustomField(index)}
-                  sx={{ height: "56px" }}
+            {personalInfoCustomFieldsForRender.map((field, index) => {
+              const fieldIndex =
+                typeof field.originalIndex === "number"
+                  ? field.originalIndex
+                  : index;
+              return (
+                <MDBox
+                  key={`pcf-${fieldIndex}`}
+                  display="flex"
+                  gap={2}
+                  alignItems="center"
                 >
-                  Remove
-                </MDButton>
-              </MDBox>
-            ))}
+                  <Autocomplete
+                    freeSolo
+                    options={FIELD_NAME_SUGGESTIONS}
+                    value={field.key || ""}
+                    onChange={(event, newValue) =>
+                      updateCustomField(fieldIndex, "key", newValue || "")
+                    }
+                    onInputChange={(event, newInputValue) =>
+                      updateCustomField(fieldIndex, "key", newInputValue)
+                    }
+                    sx={{ flex: 1 }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="outlined"
+                        label="Field Name"
+                        sx={{
+                          "& .MuiOutlinedInput-root": { height: "56px" },
+                        }}
+                      />
+                    )}
+                    renderOption={(props, option) => {
+                      const [start, match, end] = splitMatch(
+                        option,
+                        field.key || ""
+                      );
+                      return (
+                        <li {...props}>
+                          {match ? (
+                            <>
+                              {start}
+                              <Highlight>{match}</Highlight>
+                              {end}
+                            </>
+                          ) : (
+                            option
+                          )}
+                        </li>
+                      );
+                    }}
+                  />
+                  <TextField
+                    variant="outlined"
+                    label="Value"
+                    value={field.value}
+                    onChange={(e) =>
+                      updateCustomField(fieldIndex, "value", e.target.value)
+                    }
+                    sx={{
+                      flex: 1,
+                      "& .MuiOutlinedInput-root": { height: "56px" },
+                    }}
+                  />
+                  <MDButton
+                    variant="outlined"
+                    color="error"
+                    onClick={() => removeCustomField(fieldIndex)}
+                    sx={{ height: "56px" }}
+                  >
+                    Remove
+                  </MDButton>
+                </MDBox>
+              );
+            })}
             <MDButton
               variant="outlined"
               color="info"
@@ -280,67 +301,223 @@ function PersonEditForm({
             Related Persons
           </MDTypography>
           <MDBox display="flex" flexDirection="column" gap={2}>
-            {relationshipCustomFieldsForRender.map((field, index) => (
-              <MDBox
-                key={`rcf-${index}`}
-                display="flex"
-                gap={2}
-                alignItems="center"
-              >
-                <Autocomplete
-                  freeSolo
-                  options={personNameOptions}
-                  value={field.value || ""}
-                  onChange={(event, newValue) =>
-                    updateCustomField(index, "value", newValue || "")
-                  }
-                  onInputChange={(event, newInputValue) =>
-                    updateCustomField(index, "value", newInputValue)
-                  }
-                  sx={{ flex: 1.5 }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      variant="outlined"
-                      label="Person's Name"
-                      sx={{
-                        "& .MuiOutlinedInput-root": { height: "56px" },
-                      }}
-                    />
-                  )}
-                />
-                <Autocomplete
-                  freeSolo
-                  options={RELATION_SUGGESTIONS}
-                  value={field.value2 || ""}
-                  onChange={(event, newValue) =>
-                    updateCustomField(index, "value2", newValue || "")
-                  }
-                  onInputChange={(event, newInputValue) =>
-                    updateCustomField(index, "value2", newInputValue)
-                  }
-                  sx={{ flex: 1 }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      variant="outlined"
-                      label="Relation Type"
-                      sx={{
-                        "& .MuiOutlinedInput-root": { height: "56px" },
-                      }}
-                    />
-                  )}
-                />
-                <MDButton
-                  variant="outlined"
-                  color="error"
-                  onClick={() => removeCustomField(index)}
-                  sx={{ height: "56px" }}
+            {relationshipCustomFieldsForRender.map((field, index) => {
+              const fieldIndex =
+                typeof field.originalIndex === "number"
+                  ? field.originalIndex
+                  : index;
+              const selectedPerson = field.personId
+                ? findPersonById(field.personId)
+                : null;
+              const fieldError = relationshipFieldErrors[fieldIndex] || {};
+              const relationInput = field.value2 || "";
+              const relationHasValue = Boolean(relationInput.trim());
+              const relationIsValid = isValidRelationSuggestion(relationInput);
+              const autoReciprocalValue = relationIsValid
+                ? getAutoReciprocalValue(relationInput)
+                : "";
+              const reciprocalOptions = relationIsValid
+                ? getReciprocalOptions(relationInput)
+                : [];
+              const showReciprocalField = relationIsValid;
+              const relationErrorMessage =
+                fieldError.relationType ||
+                (relationHasValue && !relationIsValid
+                  ? "Please select a relation from the list."
+                  : "");
+              const reciprocalErrorMessage = fieldError.reciprocal || "";
+              return (
+                <MDBox
+                  key={`rcf-${fieldIndex}`}
+                  display="flex"
+                  gap={2}
+                  alignItems="center"
                 >
-                  Remove
-                </MDButton>
-              </MDBox>
-            ))}
+                  <Autocomplete
+                    freeSolo
+                    options={peopleList}
+                    getOptionLabel={(option) =>
+                      option?.Name || option?.value || ""
+                    }
+                    value={selectedPerson}
+                    inputValue={field.value || ""}
+                    isOptionEqualToValue={(option, value) =>
+                      option?._id && value?._id
+                        ? option._id === value._id
+                        : option?.Name === value?.Name
+                    }
+                    onChange={(event, newValue) => {
+                      if (typeof newValue === "string") {
+                        updateCustomField(fieldIndex, "value", newValue);
+                        updateCustomField(fieldIndex, "personId", "");
+                      } else if (newValue && typeof newValue === "object") {
+                        updateCustomField(
+                          fieldIndex,
+                          "value",
+                          newValue.Name || ""
+                        );
+                        updateCustomField(
+                          fieldIndex,
+                          "personId",
+                          newValue._id || ""
+                        );
+                      } else {
+                        updateCustomField(fieldIndex, "value", "");
+                        updateCustomField(fieldIndex, "personId", "");
+                      }
+                    }}
+                    onInputChange={(event, newInputValue, reason) => {
+                      if (reason === "input") {
+                        updateCustomField(fieldIndex, "value", newInputValue);
+                        updateCustomField(fieldIndex, "personId", "");
+                      }
+                    }}
+                    renderOption={(props, option, { index }) => (
+                      <li
+                        {...props}
+                        key={`${
+                          option?._id || option?.Name || "option"
+                        }-${index}`}
+                      >
+                        {option?.Name || ""}
+                      </li>
+                    )}
+                    sx={{ flex: 1.5 }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="outlined"
+                        label="Person's Name"
+                        sx={{
+                          "& .MuiOutlinedInput-root": { height: "56px" },
+                        }}
+                      />
+                    )}
+                  />
+                  <MDBox
+                    display="flex"
+                    flexDirection="column"
+                    flex={1}
+                    gap={0.5}
+                  >
+                    {relationErrorMessage && (
+                      <MDTypography variant="caption" color="error">
+                        {relationErrorMessage}
+                      </MDTypography>
+                    )}
+                    <Autocomplete
+                      freeSolo
+                      options={RELATION_SUGGESTIONS}
+                      value={field.value2 || ""}
+                      onChange={(event, newValue) => {
+                        const updatedValue = newValue || "";
+                        updateCustomField(fieldIndex, "value2", updatedValue);
+                        if (isValidRelationSuggestion(updatedValue)) {
+                          const autoValue =
+                            getAutoReciprocalValue(updatedValue);
+                          updateCustomField(
+                            fieldIndex,
+                            "value3",
+                            autoValue || ""
+                          );
+                        } else {
+                          updateCustomField(fieldIndex, "value3", "");
+                        }
+                      }}
+                      onInputChange={(event, newInputValue) => {
+                        updateCustomField(fieldIndex, "value2", newInputValue);
+                        if (isValidRelationSuggestion(newInputValue)) {
+                          const autoValue =
+                            getAutoReciprocalValue(newInputValue);
+                          updateCustomField(
+                            fieldIndex,
+                            "value3",
+                            autoValue || ""
+                          );
+                        } else {
+                          updateCustomField(fieldIndex, "value3", "");
+                        }
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          variant="outlined"
+                          label="Their Relation to Me"
+                          error={Boolean(relationErrorMessage)}
+                          sx={{
+                            "& .MuiOutlinedInput-root": { height: "56px" },
+                          }}
+                        />
+                      )}
+                    />
+                  </MDBox>
+                  {showReciprocalField &&
+                    (autoReciprocalValue ? (
+                      <TextField
+                        variant="outlined"
+                        label="My Relation to Them"
+                        value={autoReciprocalValue}
+                        disabled
+                        sx={{
+                          flex: 1,
+                          "& .MuiOutlinedInput-root": { height: "56px" },
+                        }}
+                      />
+                    ) : (
+                      <MDBox
+                        display="flex"
+                        flexDirection="column"
+                        flex={1}
+                        gap={0.5}
+                      >
+                        {reciprocalErrorMessage && (
+                          <MDTypography variant="caption" color="error">
+                            {reciprocalErrorMessage}
+                          </MDTypography>
+                        )}
+                        <Autocomplete
+                          freeSolo
+                          options={reciprocalOptions}
+                          value={field.value3 || ""}
+                          onChange={(event, newValue) =>
+                            updateCustomField(
+                              fieldIndex,
+                              "value3",
+                              newValue || ""
+                            )
+                          }
+                          onInputChange={(event, newInputValue) =>
+                            updateCustomField(
+                              fieldIndex,
+                              "value3",
+                              newInputValue
+                            )
+                          }
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              variant="outlined"
+                              label="My Relation to Them"
+                              error={Boolean(reciprocalErrorMessage)}
+                              sx={{
+                                "& .MuiOutlinedInput-root": { height: "56px" },
+                              }}
+                            />
+                          )}
+                        />
+                      </MDBox>
+                    ))}
+                  <MDButton
+                    variant="outlined"
+                    color="error"
+                    onClick={() => removeCustomField(fieldIndex)}
+                    sx={{ height: "56px" }}
+                  >
+                    Remove
+                  </MDButton>
+                </MDBox>
+              );
+            })}
             <MDButton
               variant="outlined"
               color="info"

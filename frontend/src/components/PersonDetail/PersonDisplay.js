@@ -4,6 +4,7 @@ import Card from "@mui/material/Card";
 
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
+import { useNavigate } from "react-router-dom";
 
 function PersonDisplay({
   person,
@@ -12,6 +13,12 @@ function PersonDisplay({
   peopleList, // Used for looking up related person's profile pic
   defaultProfilePic,
 }) {
+  const navigate = useNavigate();
+  const handleRelatedPersonClick = (relatedPerson) => {
+    if (!relatedPerson?._id) return;
+    navigate(`/person/${relatedPerson._id}`);
+  };
+
   return (
     <Grid container spacing={3}>
       {/* Left Column: Profile Picture and Name Only */}
@@ -141,6 +148,19 @@ function PersonDisplay({
                   alignItems="center"
                   textAlign="center"
                   width="80px"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleRelatedPersonClick(relatedPerson)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleRelatedPersonClick(relatedPerson);
+                    }
+                  }}
+                  sx={{
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
                 >
                   <MDBox
                     component="img"
