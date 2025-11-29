@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react"; // Added useCallback
+import { useState, useEffect, useCallback, useRef } from "react"; // Added useCallback
 import Card from "@mui/material/Card";
 // REMOVED: TextField, MenuItem, Autocomplete, Grid, AddIcon, UploadFileIcon, CircularProgress
 import Dialog from "@mui/material/Dialog";
@@ -403,8 +403,8 @@ function PersonDetail() {
 
   // Profile Picture Upload States (kept here as they are part of the save/discard flow)
   const [selectedFile, setSelectedFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const profilePicProcessorRef = useRef(null);
 
   // Utility function for determining relationship field data structure
   const isRelationshipFieldData = useCallback((fieldData) => {
@@ -795,6 +795,40 @@ function PersonDetail() {
     setIsEditing(true);
   }, []);
 
+  const handleProfilePicUpload = useCallback(
+    async (fileOverride = null, personIdOverride = null) => {
+      const fileToUpload = fileOverride || selectedFile;
+      if (!fileToUpload) {
+        return;
+      }
+      const targetPersonId = personIdOverride || id;
+      if (!targetPersonId || targetPersonId === "add") {
+        setUploadError(
+          "Please create the person first before uploading an image."
+        );
+        return;
+      }
+      setUploadError(null);
+      try {
+        const response = await uploadProfilePicture(targetPersonId, fileToUpload);
+        setEditedPerson((prev) => ({
+          ...prev,
+          ProfilePic: response.profilePicUrl,
+        }));
+        setSelectedFile(null);
+        localStorage.removeItem("people");
+        await fetchPeople();
+      } catch (error) {
+        console.error("Error uploading profile picture:", error);
+        setUploadError(
+          error.response?.data?.message ||
+            "Failed to upload image. Please try again."
+        );
+      }
+    },
+    [selectedFile, id]
+  );
+
   const handleSave = useCallback(async () => {
     try {
       const errors = {};
@@ -829,6 +863,10 @@ function PersonDetail() {
       if (!isValid) {
         return;
       }
+      let pendingProfilePicFile = null;
+      if (profilePicProcessorRef.current) {
+        pendingProfilePicFile = await profilePicProcessorRef.current();
+      }
       const dataToSave = buildPersonPayloadWithCustomFields(
         editedPerson,
         customFields
@@ -843,12 +881,19 @@ function PersonDetail() {
           );
       if (isAddMode) {
         const createdPerson = await createPerson(dataToSave);
+        const createdPersonId = createdPerson?._id || createdPerson?.id;
         await syncReciprocalRelationships({
-          currentPersonId: createdPerson?._id || createdPerson?.id,
+          currentPersonId: createdPersonId,
           currentPersonName: dataToSave.Name || createdPerson?.Name || "",
           currentRelationships: currentRelationshipFields,
           previousRelationships: [],
         });
+        if (pendingProfilePicFile && createdPersonId) {
+          await handleProfilePicUpload(
+            pendingProfilePicFile,
+            createdPersonId
+          );
+        }
         localStorage.removeItem("people");
         await fetchPeople();
         const storedPeople = localStorage.getItem("people");
@@ -858,6 +903,9 @@ function PersonDetail() {
         navigate("/tables");
       } else {
         await updatePerson(id, dataToSave);
+        if (pendingProfilePicFile) {
+          await handleProfilePicUpload(pendingProfilePicFile);
+        }
         await syncReciprocalRelationships({
           currentPersonId: id,
           currentPersonName: dataToSave.Name || person?.Name || "",
@@ -891,6 +939,7 @@ function PersonDetail() {
     initializeCustomFields,
     buildPersonPayloadWithCustomFields,
     syncReciprocalRelationships,
+    handleProfilePicUpload,
   ]); // Dependencies for useCallback
 
   const handleDiscard = useCallback(() => {
@@ -961,38 +1010,9 @@ function PersonDetail() {
     }
   }, []);
 
-  const handleProfilePicUpload = useCallback(async () => {
-    if (!selectedFile) {
-      setUploadError("Please select an image file first.");
-      return;
-    }
-    if (isAddMode) {
-      setUploadError(
-        "Please create the person first before uploading an image."
-      );
-      return;
-    }
-    setIsUploading(true);
-    setUploadError(null);
-    try {
-      const response = await uploadProfilePicture(id, selectedFile);
-      setEditedPerson((prev) => ({
-        ...prev,
-        ProfilePic: response.profilePicUrl,
-      }));
-      setSelectedFile(null);
-      localStorage.removeItem("people");
-      await fetchPeople();
-    } catch (error) {
-      console.error("Error uploading profile picture:", error);
-      setUploadError(
-        error.response?.data?.message ||
-          "Failed to upload image. Please try again."
-      );
-    } finally {
-      setIsUploading(false);
-    }
-  }, [selectedFile, isAddMode, id]);
+  const registerProfilePicProcessor = useCallback((processor) => {
+    profilePicProcessorRef.current = processor;
+  }, []);
 
   // Modal Handlers
   const handleCloseModal = useCallback(() => {
@@ -1089,7 +1109,6 @@ function PersonDetail() {
                 relationshipFieldErrors={relationshipFieldErrors}
                 peopleList={peopleList}
                 defaultProfilePic={defaultProfilePic}
-                isAddMode={isAddMode}
                 // Pass all relevant handlers and states
                 handleChange={handleChange}
                 addCustomField={addCustomField}
@@ -1097,9 +1116,8 @@ function PersonDetail() {
                 updateCustomField={updateCustomField}
                 removeCustomField={removeCustomField}
                 handleFileChange={handleFileChange}
-                handleProfilePicUpload={handleProfilePicUpload}
+                registerProfilePicProcessor={registerProfilePicProcessor}
                 selectedFile={selectedFile}
-                isUploading={isUploading}
                 uploadError={uploadError}
               />
             ) : (
