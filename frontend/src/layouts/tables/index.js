@@ -16,13 +16,11 @@ import peopleTableData, {
   columns as peopleColumns,
   buildRows as buildPeopleRows,
 } from "layouts/tables/data/peopleTableData";
-import projectsTableData from "layouts/tables/data/projectsTableData";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function People() {
   const { people, rows: initialRows } = peopleTableData(); // now also returns people
-  const { columns: pColumns, rows: pRows } = projectsTableData();
   const navigate = useNavigate();
 
   // Search
@@ -31,7 +29,7 @@ function People() {
   // Pagination
   const [page, setPage] = useState(1);
   const [inputValue, setInputValue] = useState("1");
-  const rowsPerPage = 5;
+  const rowsPerPage = 10;
 
   // Filter people by name substring
   const filteredPeople = useMemo(() => {
@@ -125,13 +123,17 @@ function People() {
                 </MDButton>
               </MDBox>
 
-              <MDBox pt={3} sx={{ maxHeight: 400, overflow: "auto" }}>
+              <MDBox
+                pt={3}
+                sx={{ maxHeight: "calc(100vh - 400px)", overflow: "auto" }}
+              >
                 <DataTable
                   table={{ columns: peopleColumns, rows: paginatedRows }}
                   isSorted={false}
                   entriesPerPage={false}
                   showTotalEntries={false}
                   noEndBorder
+                  pagination={false}
                 />
               </MDBox>
 
@@ -188,34 +190,6 @@ function People() {
                     <ArrowForwardIosIcon fontSize="small" />
                   </IconButton>
                 </MDBox>
-              </MDBox>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Card>
-              <MDBox
-                mx={2}
-                mt={-3}
-                py={3}
-                px={2}
-                variant="gradient"
-                bgColor="info"
-                borderRadius="lg"
-                coloredShadow="info"
-              >
-                <MDTypography variant="h6" color="white">
-                  Projects Table
-                </MDTypography>
-              </MDBox>
-              <MDBox pt={3}>
-                <DataTable
-                  table={{ columns: pColumns, rows: pRows }}
-                  isSorted={false}
-                  entriesPerPage={false}
-                  showTotalEntries={false}
-                  noEndBorder
-                />
               </MDBox>
             </Card>
           </Grid>

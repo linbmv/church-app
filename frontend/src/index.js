@@ -18,9 +18,13 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "App";
 import { AuthContextProvider } from "context";
+import Icon from "@mui/material/Icon";
 
 // Material Dashboard 2 React Context Provider
 import { MaterialUIControllerProvider } from "context";
+
+// Make Icon globally accessible
+window.Icon = Icon;
 
 const rootElement = document.getElementById("root");
 const root = createRoot(rootElement);

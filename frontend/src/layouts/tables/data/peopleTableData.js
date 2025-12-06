@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import defaultProfilePic from "assets/images/default-profile-picture.png";
 import { fetchPeople } from "services/convo-broker.js";
 import { useNavigate } from "react-router-dom";
+import Icon from "@mui/material/Icon";
 
 export const columns = [
   { Header: "name", accessor: "people", width: "35%", align: "left" },
@@ -99,7 +100,7 @@ export function buildRows(rawPeople, navigate) {
         fontWeight="medium"
         sx={{ cursor: "pointer" }}
       >
-        Edit
+        <Icon fontSize="small">edit</Icon>
       </MDTypography>
     ),
   }));

@@ -234,7 +234,7 @@ function DataTable({
             </MDTypography>
           </MDBox>
         )}
-        {pageOptions.length > 1 && (
+        {pagination && pageOptions.length > 1 && (
           <MDPagination
             variant={pagination.variant ? pagination.variant : "gradient"}
             color={pagination.color ? pagination.color : "info"}
@@ -289,19 +289,22 @@ DataTable.propTypes = {
   canSearch: PropTypes.bool,
   showTotalEntries: PropTypes.bool,
   table: PropTypes.objectOf(PropTypes.array).isRequired,
-  pagination: PropTypes.shape({
-    variant: PropTypes.oneOf(["contained", "gradient"]),
-    color: PropTypes.oneOf([
-      "primary",
-      "secondary",
-      "info",
-      "success",
-      "warning",
-      "error",
-      "dark",
-      "light",
-    ]),
-  }),
+  pagination: PropTypes.oneOfType([
+    PropTypes.shape({
+      variant: PropTypes.oneOf(["contained", "gradient"]),
+      color: PropTypes.oneOf([
+        "primary",
+        "secondary",
+        "info",
+        "success",
+        "warning",
+        "error",
+        "dark",
+        "light",
+      ]),
+    }),
+    PropTypes.bool,
+  ]),
   isSorted: PropTypes.bool,
   noEndBorder: PropTypes.bool,
 };
