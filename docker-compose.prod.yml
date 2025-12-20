@@ -1,0 +1,19 @@
+services:
+  backend:
+    image: ghcr.io/linbmv/church-app/backend:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/linbmv/church-app/frontend:latest
+    ports:
+      - "80:3000"
+    environment:
+      - REACT_APP_API_URL=http://your-vps-ip:8080
+    depends_on:
+      - backend
+    restart: unless-stopped
