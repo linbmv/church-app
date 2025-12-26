@@ -16,11 +16,11 @@ COPY backend/package*.json ./
 RUN npm ci --only=production
 COPY backend/ ./
 
-# Final production image with nginx + node
-FROM nginx:alpine AS production
+# Final production image - use node base with nginx
+FROM node:20-alpine AS production
 
-# Install Node.js in nginx image
-RUN apk add --no-cache nodejs npm
+# Install nginx
+RUN apk add --no-cache nginx
 
 # Copy frontend build to nginx
 COPY --from=frontend-builder /app/frontend/build /usr/share/nginx/html
