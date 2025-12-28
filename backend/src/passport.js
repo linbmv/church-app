@@ -3,7 +3,7 @@ import passportJWT from "passport-jwt";
 import dotenv from "dotenv";
 import passport from "passport";
 
-import { peopleModel } from "./schemas/people.schema";
+import { peopleModel } from "./schemas/people.schema.js";
 const JWTStrategy = passportJWT.Strategy;
 dotenv.config();
 

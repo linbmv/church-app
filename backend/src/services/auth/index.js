@@ -2,8 +2,8 @@ import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import randomToken from "random-token";
 import bcrypt from "bcrypt";
-import { peopleModel } from "../../schemas/people.schema";
-import { passwordResetModel } from "../../schemas/passwordResets.schema";
+import { peopleModel } from "../../schemas/people.schema.js";
+import { passwordResetModel } from "../../schemas/passwordResets.schema.js";
 import jwt from "jsonwebtoken";
 
 dotenv.config();

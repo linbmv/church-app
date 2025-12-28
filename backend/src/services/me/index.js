@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { peopleModel } from "../../schemas/people.schema";
+import { peopleModel } from "../../schemas/people.schema.js";
 import jwt from "jsonwebtoken";
 
 dotenv.config();

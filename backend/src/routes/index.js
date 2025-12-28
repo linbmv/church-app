@@ -1,5 +1,5 @@
-import userRoutes from "./people";
-import meRoutes from "./me";
-import authRoutes from "./auth";
+import userRoutes from "./people/index.js";
+import meRoutes from "./me/index.js";
+import authRoutes from "./auth/index.js";
 
 export { userRoutes, meRoutes, authRoutes };
